@@ -6,3 +6,11 @@ faiss-cpu
 python-dotenv
 openai
 sentence_transformers
+fastapi
+groq
+joblib
+langchain-groq
+langchain-huggingface
+langchain-text-splitters
+pydantic
+uvicorn
