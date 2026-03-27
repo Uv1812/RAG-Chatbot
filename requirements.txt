@@ -14,3 +14,4 @@ langchain-huggingface
 langchain-text-splitters
 pydantic
 uvicorn
+python-multipart
