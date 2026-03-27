@@ -1,0 +1,16 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+ENV/
+
+# Project specific
+faiss_index/
+uploaded_pdfs/
+.env
+.DS_Store
+.vscode/
+.idea/
+*.log
