@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Chatbot</title>
+<style>
+    :root {
+        --bg: #f8fafc;           /* Light grey background */
+        --chat-bg: #ffffff;      /* Pure white chat area */
+        --sidebar-grey: #e2e8f0; /* Light grey for accents */
+        --dark-grey: #475569;    /* Medium grey for text */
+        --text: #1e2937;         /* Dark grey text */
+        --primary: #64748b;      /* Slate grey as primary */
+        --primary-hover: #334155;
+        --user-bg: #64748b;      /* Grey user bubbles */
+        --bot-bg: #f1f5f9;       /* Very light grey bot bubbles */
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        overflow: hidden;
+    }
+
+    h1 {
+        color: var(--dark-grey);
+        margin-bottom: 15px;
+        font-size: 2.2rem;
+        font-weight: 600;
+    }
+
+    #upload-section {
+        margin-bottom: 20px;
+        width: 100%;
+        max-width: 700px;
+        text-align: center;
+    }
+
+    #choose-btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 18px 40px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 6px 15px rgba(100, 116, 139, 0.25);
+        transition: all 0.3s ease;
+        width: 100%;
+        max-width: 420px;
+    }
+
+    #choose-btn:hover {
+        background: var(--primary-hover);
+        transform: translateY(-2px);
+    }
+
+    #current-pdf {
+        background: var(--chat-bg);
+        padding: 12px 20px;
+        border-radius: 12px;
+        margin: 15px 0;
+        font-size: 1rem;
+        color: var(--dark-grey);
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        border: 1px solid var(--sidebar-grey);
+    }
+
+    #chatbox {
+        width: 100%;
+        max-width: 720px;
+        height: 520px;
+        background: var(--chat-bg);
+        border-radius: 16px;
+        padding: 20px;
+        overflow-y: auto;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        margin-bottom: 20px;
+        border: 1px solid var(--sidebar-grey);
+    }
+
+    .message {
+        margin: 14px 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-msg {
+        align-self: flex-end;
+        background: var(--user-bg);
+        color: white;
+        padding: 14px 20px;
+        border-radius: 20px 20px 4px 20px;
+        max-width: 78%;
+        word-wrap: break-word;
+        box-shadow: 0 3px 8px rgba(100, 116, 139, 0.2);
+    }
+
+    .bot-msg {
+        align-self: flex-start;
+        background: var(--bot-bg);
+        color: var(--text);
+        padding: 14px 20px;
+        border-radius: 20px 20px 20px 4px;
+        max-width: 78%;
+        word-wrap: break-word;
+        border: 1px solid #e2e8f0;
+    }
+
+    .sources {
+        font-size: 0.82rem;
+        color: #64748b;
+        margin-top: 8px;
+        padding-left: 10px;
+    }
+
+    #input-section {
+        width: 100%;
+        max-width: 720px;
+        display: flex;
+        gap: 12px;
+    }
+
+    #question {
+        flex: 1;
+        padding: 16px 22px;
+        border-radius: 50px;
+        border: 2px solid var(--sidebar-grey);
+        background: var(--chat-bg);
+        color: var(--text);
+        font-size: 1.05rem;
+        outline: none;
+    }
+
+    #question:focus {
+        border-color: var(--primary);
+    }
+
+    button#send-btn {
+        padding: 0 28px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    button#send-btn:hover {
+        background: var(--primary-hover);
+    }
+
+    /* Full Screen Loader */
+    #loader {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(248, 250, 252, 0.92);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        color: var(--dark-grey);
+    }
+
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 6px solid #e2e8f0;
+        border-top: 6px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .success-notification {
+        position: fixed;
+        top: 30px;
+        background: #64748b;
+        color: white;
+        padding: 16px 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(100, 116, 139, 0.3);
+        z-index: 10000;
+        font-weight: 600;
+        opacity: 0;
+        transition: all 0.4s ease;
+        transform: translateY(-20px);
+    }
+</style>
+</head>
+<body>
+
+<h1>RAG Chatbot</h1>
+
+<div id="upload-section">
+    <button id="choose-btn">
+        📄 Choose PDF File (Max 10 pages)
+    </button>
+    <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
+</div>
+
+<div id="current-pdf">No PDF uploaded yet</div>
+
+<div id="chatbox"></div>
+
+<div id="input-section">
+    <input type="text" id="question" placeholder="Ask any question about the uploaded PDF..." />
+    <button id="send-btn">Send</button>
+</div>
+
+<!-- Full Screen Loader -->
+<div id="loader">
+    <div class="spinner"></div>
+    <div id="loader-text">Uploading and processing PDF...</div>
+</div>
+
+<!-- Success Notification -->
+<div id="success-notification" class="success-notification"></div>
+
+<script>
+const chatbox = document.getElementById('chatbox');
+const questionInput = document.getElementById('question');
+const pdfFileInput = document.getElementById('pdfFile');
+const chooseBtn = document.getElementById('choose-btn');
+const sendBtn = document.getElementById('send-btn');
+const currentPdfDiv = document.getElementById('current-pdf');
+const loader = document.getElementById('loader');
+const loaderText = document.getElementById('loader-text');
+const successNotif = document.getElementById('success-notification');
+
+let currentFilename = '';
+
+// Trigger hidden file input
+chooseBtn.addEventListener('click', () => {
+    pdfFileInput.click();
+});
+
+// Upload handler
+pdfFileInput.addEventListener('change', async () => {
+    if (!pdfFileInput.files.length) return;
+
+    const file = pdfFileInput.files[0];
+    currentFilename = file.name;
+
+    loader.style.display = 'flex';
+    loaderText.textContent = `Uploading ${currentFilename}...`;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const res = await fetch("/upload_pdf", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        loader.style.display = 'none';
+
+        if (res.ok) {
+            currentPdfDiv.innerHTML = `✅ <strong>Loaded:</strong> ${currentFilename}`;
+            showSuccessNotification(`PDF "${currentFilename}" uploaded successfully!`);
+            addBotMessage(`✅ PDF processed successfully!<br>You can now ask questions.`);
+            chatbox.innerHTML = ''; // Clear old chat on new upload
+        } else {
+            currentPdfDiv.innerHTML = `❌ Upload failed`;
+            addBotMessage(`❌ ${data.message || "Failed to upload PDF"}`);
+        }
+    } catch (err) {
+        loader.style.display = 'none';
+        currentPdfDiv.innerHTML = `❌ Error`;
+        addBotMessage("❌ Network error while uploading PDF.");
+    }
+});
+
+function sendQuestion() {
+    const text = questionInput.value.trim();
+    if (!text) return;
+
+    addUserMessage(text);
+    questionInput.value = '';
+
+    const thinkingId = addBotMessage("Thinking...", true);
+
+    fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text })
+    })
+    .then(res => res.json())
+    .then(data => {
+        const thinkingMsg = document.getElementById(thinkingId);
+        if (thinkingMsg) thinkingMsg.remove();
+        addBotMessage(data.answer, data.sources || []);
+    })
+    .catch(() => {
+        const thinkingMsg = document.getElementById(thinkingId);
+        if (thinkingMsg) thinkingMsg.remove();
+        addBotMessage("Sorry, I couldn't get a response. Please try again.");
+    });
+}
+
+sendBtn.addEventListener('click', sendQuestion);
+questionInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') sendQuestion();
+});
+
+// Message helpers
+let messageCounter = 0;
+
+function addUserMessage(msg) {
+    const div = document.createElement('div');
+    div.className = 'message';
+    div.innerHTML = `<div class="user-msg">${msg}</div>`;
+    chatbox.appendChild(div);
+    chatbox.scrollTop = chatbox.scrollHeight;
+}
+
+function addBotMessage(msg, sources = []) {
+    const id = `msg-${messageCounter++}`;
+    const div = document.createElement('div');
+    div.className = 'message';
+    div.id = id;
+
+    let sourcesHtml = '';
+    if (sources.length > 0) {
+        sourcesHtml = `<div class="sources">Sources: ${sources.join(', ')}</div>`;
+    }
+
+    div.innerHTML = `<div class="bot-msg">${msg}</div>${sourcesHtml}`;
+    chatbox.appendChild(div);
+    chatbox.scrollTop = chatbox.scrollHeight;
+    return id;
+}
+
+function showSuccessNotification(message) {
+    successNotif.textContent = message;
+    successNotif.style.opacity = '1';
+    successNotif.style.transform = 'translateY(0)';
+
+    setTimeout(() => {
+        successNotif.style.opacity = '0';
+        successNotif.style.transform = 'translateY(-20px)';
+    }, 2800);
+}
+</script>
+
+</body>
+</html>
