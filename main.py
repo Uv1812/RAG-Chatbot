@@ -6,8 +6,11 @@ import shutil
 from ingest import ingest_pdf
 from rag_chain import get_answer
 import pydantic
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
